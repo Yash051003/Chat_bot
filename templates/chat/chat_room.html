@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat with {{ other_user.username }} - Dating App{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        height: 70vh;
+        display: flex;
+        flex-direction: column;
+    }
+    .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+    .message {
+        margin-bottom: 1rem;
+        max-width: 70%;
+    }
+    .message.sent {
+        margin-left: auto;
+    }
+    .message.received {
+        margin-right: auto;
+    }
+    .message-content {
+        padding: 0.5rem 1rem;
+        border-radius: 1rem;
+    }
+    .sent .message-content {
+        background-color: #007bff;
+        color: white;
+    }
+    .received .message-content {
+        background-color: #e9ecef;
+    }
+    .message-image {
+        max-width: 200px;
+        border-radius: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Chat with {{ other_user.username }}</h4>
+                <a href="{% url 'matches' %}" class="btn btn-outline-secondary btn-sm">Back to Matches</a>
+            </div>
+            <div class="card-body chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    {% for message in messages %}
+                        <div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}">
+                            <div class="message-content">
+                                {% if message.image %}
+                                    <img src="{{ message.image.url }}" alt="Shared image" class="message-image mb-2">
+                                {% endif %}
+                                {{ message.content }}
+                                <small class="d-block text-muted">{{ message.created_at|date:"g:i A" }}</small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <form id="message-form" class="mt-3">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <input type="text" id="message-input" class="form-control" placeholder="Type your message...">
+                        <input type="file" id="image-input" class="form-control" accept="image/*" style="max-width: 150px;">
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const chatMessages = document.getElementById('chat-messages');
+    const messageForm = document.getElementById('message-form');
+    const messageInput = document.getElementById('message-input');
+    const imageInput = document.getElementById('image-input');
+    let lastMessageId = {{ messages.last.id|default:"0" }};
+
+    // Scroll to bottom of chat
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // Poll for new messages
+    function pollMessages() {
+        fetch(`/chat/match/{{ match.id }}/messages/?last_message_id=${lastMessageId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.messages.length > 0) {
+                    data.messages.forEach(message => {
+                        appendMessage(message);
+                        lastMessageId = message.id;
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            });
+    }
+
+    // Append a message to the chat
+    function appendMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${message.sender === '{{ request.user.username }}' ? 'sent' : 'received'}`;
+        
+        let content = '';
+        if (message.image_url) {
+            content += `<img src="${message.image_url}" alt="Shared image" class="message-image mb-2">`;
+        }
+        content += `${message.content}<small class="d-block text-muted">${message.created_at}</small>`;
+        
+        messageDiv.innerHTML = `<div class="message-content">${content}</div>`;
+        chatMessages.appendChild(messageDiv);
+    }
+
+    // Send message
+    messageForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('content', messageInput.value);
+        if (imageInput.files[0]) {
+            formData.append('image', imageInput.files[0]);
+        }
+
+        fetch(`/chat/match/{{ match.id }}/send/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                messageInput.value = '';
+                imageInput.value = '';
+                appendMessage(data.message);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        });
+    });
+
+    // Poll for new messages every 3 seconds
+    setInterval(pollMessages, 3000);
+</script>
+{% endblock %} 
