@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Favorites - Dating App{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="display-6 mb-2">Favorites</h2>
+            <p class="text-muted">People you've marked as favorites</p>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% if favorite_users %}
+            {% for user in favorite_users %}
+                <div class="col">
+                    <div class="card h-100 profile-card">
+                        <div class="position-relative">
+                            {% if user.profile_picture %}
+                                <img src="{{ user.profile_picture.url }}" class="card-img-top profile-image" alt="{{ user.username }}" style="height: 300px; object-fit: cover;">
+                            {% else %}
+                                <img src="{% static 'images/default-profile.jpg' %}" class="card-img-top profile-image" alt="Default Profile" style="height: 300px; object-fit: cover;">
+                            {% endif %}
+                            {% if user.distance %}
+                                <div class="position-absolute top-0 start-0 m-2">
+                                    <span class="badge bg-dark bg-opacity-75 px-2 py-1">
+                                        <i class="fas fa-map-marker-alt"></i> 
+                                        {{ user.distance|floatformat:1 }} km away
+                                    </span>
+                                </div>
+                            {% endif %}
+                            <div class="position-absolute top-0 end-0 m-2">
+                                <a href="{% url 'match:toggle_favorite' user.id %}" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-heart-fill"></i> Remove
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title mb-2">{{ user.username }}{% if user.age %}, {{ user.age }}{% endif %}</h5>
+                            {% if user.location %}
+                                <p class="card-text text-muted mb-1">
+                                    <i class="fas fa-map-marker-alt"></i> {{ user.location }}
+                                </p>
+                            {% endif %}
+                            <div class="d-flex gap-2 mt-3">
+                                <button class="btn btn-outline-primary flex-grow-1" data-bs-toggle="modal" data-bs-target="#profileModal{{ user.id }}">
+                                    <i class="fas fa-user"></i> View Profile
+                                </button>
+                                <a href="{% url 'chat:room' user.id %}" class="btn btn-primary">
+                                    <i class="bi bi-chat-dots"></i> Message
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Modal -->
+                <div class="modal fade" id="profileModal{{ user.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header border-0">
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {% if user.profile_picture %}
+                                            <img src="{{ user.profile_picture.url }}" class="img-fluid rounded" alt="{{ user.username }}">
+                                        {% else %}
+                                            <img src="{% static 'images/default-profile.jpg' %}" class="img-fluid rounded" alt="Default Profile">
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h3 class="mb-3">{{ user.username }}{% if user.age %}, {{ user.age }}{% endif %}</h3>
+                                        {% if user.location %}
+                                            <p class="mb-2">
+                                                <i class="fas fa-map-marker-alt text-primary"></i>
+                                                <span class="ms-2">{{ user.location }}</span>
+                                            </p>
+                                        {% endif %}
+                                        {% if user.bio %}
+                                            <div class="mb-4">
+                                                <h5>About Me</h5>
+                                                <p>{{ user.bio }}</p>
+                                            </div>
+                                        {% endif %}
+                                        <div class="d-grid gap-2">
+                                            <a href="{% url 'chat:room' user.id %}" class="btn btn-primary">
+                                                <i class="bi bi-chat-dots"></i> Message
+                                            </a>
+                                            <a href="{% url 'match:toggle_favorite' user.id %}" class="btn btn-danger">
+                                                <i class="bi bi-heart-fill"></i> Remove from Favorites
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> You haven't added any favorites yet. 
+                    <a href="{% url 'match:browse' %}" class="alert-link">Browse profiles</a> to add some!
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .profile-card {
+        transition: transform 0.2s ease-in-out;
+    }
+    .profile-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %} 

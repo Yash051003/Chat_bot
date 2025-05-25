@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2 text-center">
+            <h1 class="display-4 mb-4">Welcome to Dating App</h1>
+            <p class="lead mb-4">Find your perfect match and start your journey to love!</p>
+            
+            <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                <a href="{% url 'match:browse' %}" class="btn btn-primary btn-lg px-4 gap-3">
+                    <i class="bi bi-search"></i> Browse Profiles
+                </a>
+                <a href="{% url 'match:matches' %}" class="btn btn-secondary btn-lg px-4">
+                    <i class="bi bi-heart"></i> View Matches
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

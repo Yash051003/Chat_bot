@@ -22,7 +22,7 @@
                         <i class="bi bi-gender-ambiguous"></i> {{ user.get_gender_display }}<br>
                         <i class="bi bi-heart"></i> Looking for: {{ user.get_looking_for_display }}
                     </p>
-                    <a href="{% url 'edit_profile' %}" class="btn btn-primary">
+                    <a href="{% url 'accounts:edit_profile' %}" class="btn btn-primary">
                         <i class="bi bi-pencil"></i> Edit Profile
                     </a>
                 </div>
@@ -91,7 +91,7 @@
                                                 {% endif %}
                                                 <div class="card-body">
                                                     <h6 class="card-title">{{ other_user.username }}</h6>
-                                                    <a href="{% url 'chat_room' match.id %}" class="btn btn-sm btn-primary">
+                                                    <a href="{% url 'chat:room' match.id %}" class="btn btn-sm btn-primary">
                                                         <i class="bi bi-chat-dots"></i> Chat
                                                     </a>
                                                 </div>
@@ -103,7 +103,7 @@
                         </div>
                         {% if matches|length > 4 %}
                             <div class="text-center mt-3">
-                                <a href="{% url 'matches' %}" class="btn btn-outline-primary">
+                                <a href="{% url 'match:matches' %}" class="btn btn-outline-primary">
                                     View All Matches
                                 </a>
                             </div>
@@ -111,7 +111,7 @@
                     {% else %}
                         <p class="text-muted text-center">No matches yet. Start browsing profiles to find your match!</p>
                         <div class="text-center">
-                            <a href="{% url 'index' %}" class="btn btn-primary">
+                            <a href="{% url 'match:browse' %}" class="btn btn-primary">
                                 <i class="bi bi-search"></i> Find Matches
                             </a>
                         </div>
