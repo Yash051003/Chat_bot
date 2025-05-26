@@ -38,10 +38,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Custom apps
+    'channels',
     'accounts',
     'match',
     'chat',
+    'calls',
 ]
 
 MIDDLEWARE = [
@@ -146,3 +147,15 @@ LOGOUT_REDIRECT_URL = '/'
 
 # Custom user model
 AUTH_USER_MODEL = 'accounts.User'
+
+# Channels Configuration
+ASGI_APPLICATION = 'dating_app.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
