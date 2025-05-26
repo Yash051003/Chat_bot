@@ -40,7 +40,7 @@
                                             <p class="card-text text-muted">{{ other_user.bio|truncatewords:20 }}</p>
                                         {% endif %}
                                         <div class="d-grid mt-3">
-                                            <a href="{% url 'chat:chat_room' match.id %}" class="btn btn-primary">
+                                            <a href="{% url 'chat:room' other_user.id %}" class="btn btn-primary">
                                                 <i class="bi bi-chat-dots"></i> Start Chat
                                             </a>
                                         </div>
