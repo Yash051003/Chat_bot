@@ -71,28 +71,27 @@ def chat_room(request, user_id):
     ).update(is_read=True)
     
     # Get messages but only select necessary fields
-    messages = Message.objects.filter(conversation=conversation).order_by('created_at').values(
-        'id', 'content', 'sender', 'created_at', 'image'
-    )
+    messages = Message.objects.filter(conversation=conversation).order_by('created_at').select_related('sender')
     
     # Convert messages to a format suitable for the template
     formatted_messages = [{
-        'id': msg['id'],
-        'content': msg['content'],
-        'sender_id': msg['sender'],
-        'created_at': msg['created_at'],
-        'image': msg['image']
+        'id': msg.id,
+        'content': msg.content,
+        'sender': msg.sender,
+        'timestamp': msg.created_at,
+        'is_read': msg.is_read,
+        'image_url': msg.image.url if msg.image else None
     } for msg in messages]
     
-    # Get the last message ID without displaying it
-    last_message_id = messages.last()['id'] if messages else 0
+    # Get WebSocket protocol based on request
+    ws_protocol = 'wss' if request.is_secure() else 'ws'
     
-    return render(request, 'chat/chat_room.html', {
+    return render(request, 'chat/room.html', {
         'other_user': other_user,
         'messages': formatted_messages,
         'conversation': conversation,
-        'last_message_id': last_message_id,
-        'debug': False  # Disable debug output
+        'room_name': str(conversation.id),
+        'ws_protocol': ws_protocol
     })
 
 @login_required
@@ -167,4 +166,22 @@ def check_new_messages(request):
     return JsonResponse({
         'unread_count': unread_count,
         'new_messages': new_messages
+    })
+
+@login_required
+@require_POST
+def upload_image(request):
+    if 'image' not in request.FILES:
+        return JsonResponse({'success': False, 'error': 'No image provided'})
+    
+    image = request.FILES['image']
+    # Save the image temporarily
+    message = Message.objects.create(
+        sender=request.user,
+        image=image
+    )
+    
+    return JsonResponse({
+        'success': True,
+        'image_url': message.image.url
     })
