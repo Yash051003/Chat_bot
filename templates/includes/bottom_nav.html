@@ -1,4 +1,5 @@
 {% load static %}
+{% include 'includes/notification_dot.html' %}
 
 <nav class="bottom-nav fixed-bottom bg-white border-top">
     <div class="d-flex justify-content-around py-2">
@@ -6,9 +7,10 @@
             <i class="bi bi-grid-fill fs-5"></i>
             <span class="d-block small">Home</span>
         </a>
-        <a href="{% url 'chat:inbox' %}" class="nav-link text-center {% if request.resolver_match.app_name == 'chat' %}active{% endif %}">
+        <a href="{% url 'chat:inbox' %}" class="nav-link text-center position-relative {% if request.resolver_match.app_name == 'chat' %}active{% endif %}">
             <i class="bi bi-chat-dots-fill fs-5"></i>
             <span class="d-block small">Messages</span>
+            <div id="message-notification" class="notification-count d-none">0</div>
         </a>
         <a href="{% url 'match:favorites' %}" class="nav-link text-center {% if request.resolver_match.url_name == 'favorites' %}active{% endif %}">
             <i class="bi bi-heart-fill fs-5"></i>
@@ -47,4 +49,42 @@
     body {
         padding-bottom: 4.5rem;
     }
-</style> 
+</style>
+
+<script>
+    // Function to update the notification count
+    function updateNotificationCount(count) {
+        const notificationElement = document.getElementById('message-notification');
+        if (count > 0) {
+            notificationElement.textContent = count > 99 ? '99+' : count;
+            notificationElement.classList.remove('d-none');
+        } else {
+            notificationElement.classList.add('d-none');
+        }
+    }
+
+    // Function to check for new messages
+    function checkNewMessages() {
+        fetch('/chat/check_new_messages/')
+            .then(response => response.json())
+            .then(data => {
+                updateNotificationCount(data.unread_count);
+                // Play notification sound if there are new messages
+                if (data.new_messages && data.unread_count > 0) {
+                    playNotificationSound();
+                }
+            });
+    }
+
+    // Function to play notification sound
+    function playNotificationSound() {
+        const audio = new Audio("{% static 'sounds/notification.mp3' %}");
+        audio.play().catch(error => console.log('Error playing sound:', error));
+    }
+
+    // Check for new messages every 10 seconds
+    setInterval(checkNewMessages, 10000);
+    
+    // Initial check when page loads
+    document.addEventListener('DOMContentLoaded', checkNewMessages);
+</script> 

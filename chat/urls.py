@@ -8,4 +8,5 @@ urlpatterns = [
     path('user/<int:user_id>/', views.chat_room, name='room'),
     path('conversation/<int:conversation_id>/send/', views.send_message, name='send_message'),
     path('conversation/<int:conversation_id>/messages/', views.get_messages, name='get_messages'),
+    path('check_new_messages/', views.check_new_messages, name='check_new_messages'),
 ] 

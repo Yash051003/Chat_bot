@@ -25,7 +25,7 @@ class Conversation(models.Model):
         ordering = ['-updated_at']
 
     def __str__(self):
-        return f"Conversation between {', '.join(str(user) for user in self.participants.all())}"
+        return f"Conversation #{self.id}"
 
 class Message(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages', null=True)
@@ -39,4 +39,4 @@ class Message(models.Model):
         ordering = ['created_at']
 
     def __str__(self):
-        return f"Message from {self.sender} in {self.conversation}"
+        return f"Message #{self.id} from {self.sender.username}"

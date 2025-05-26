@@ -12,15 +12,21 @@
             {% if conversations %}
                 <div class="list-group">
                     {% for conversation in conversations %}
-                        <a href="{% url 'chat:room' conversation.other_user_id %}" class="list-group-item list-group-item-action">
+                        <a href="{% url 'chat:room' conversation.other_user_id %}" 
+                           class="list-group-item list-group-item-action {% if conversation.unread_messages %}unread-conversation{% endif %}">
                             <div class="d-flex w-100 justify-content-between align-items-center">
                                 <div class="d-flex align-items-center">
                                     <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
                                         <i class="bi bi-person-fill fs-4"></i>
                                     </div>
                                     <div>
-                                        <h6 class="mb-1">{{ conversation.other_user_name }}</h6>
-                                        <p class="mb-1 text-muted small text-truncate" style="max-width: 200px;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <h6 class="mb-1">{{ conversation.other_user_name }}</h6>
+                                            {% if conversation.unread_messages %}
+                                                <span class="badge rounded-pill bg-danger">{{ conversation.unread_messages }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="mb-1 {% if conversation.unread_messages %}fw-bold text-dark{% else %}text-muted{% endif %} small text-truncate" style="max-width: 200px;">
                                             {% if conversation.latest_message_content %}
                                                 {{ conversation.latest_message_content }}
                                             {% else %}
@@ -29,9 +35,13 @@
                                         </p>
                                     </div>
                                 </div>
-                                {% if conversation.latest_message_time %}
-                                    <small class="text-muted">{{ conversation.latest_message_time|timesince }} ago</small>
-                                {% endif %}
+                                <div class="text-end">
+                                    {% if conversation.latest_message_time %}
+                                        <small class="{% if conversation.unread_messages %}text-primary fw-bold{% else %}text-muted{% endif %}">
+                                            {{ conversation.latest_message_time|timesince }} ago
+                                        </small>
+                                    {% endif %}
+                                </div>
                             </div>
                         </a>
                     {% endfor %}
@@ -59,6 +69,13 @@
     .list-group-item:hover {
         transform: translateX(5px);
         background-color: #f8f9fa;
+    }
+    .unread-conversation {
+        background-color: rgba(13, 110, 253, 0.05);
+        border-left: 4px solid #0d6efd;
+    }
+    .unread-conversation:hover {
+        background-color: rgba(13, 110, 253, 0.1);
     }
 </style>
 {% endblock %} 
