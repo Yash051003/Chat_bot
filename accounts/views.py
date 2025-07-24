@@ -36,12 +36,14 @@ def logout_view(request):
     messages.success(request, 'You have been successfully logged out.')
     return redirect('accounts:register')
 
+
 def register(request):
+    # If the user is already logged in, send them to the browse page directly.
     if request.user.is_authenticated:
-        logout(request)
-        return redirect('accounts:register')
-        
+        return redirect('match:browse') 
+    
     if request.method == 'POST':
+        # ... your existing POST logic is perfect ...
         form = UserRegistrationForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save()
@@ -52,7 +54,7 @@ def register(request):
         form = UserRegistrationForm()
     return render(request, 'accounts/register.html', {'form': form})
 
-@login_required(login_url='accounts:login')
+@login_required
 def profile(request, username=None):
     if username:
         profile_user = get_object_or_404(User, username=username)
@@ -82,7 +84,7 @@ def profile(request, username=None):
     }
     return render(request, 'accounts/profile.html', context)
 
-@login_required(login_url='accounts:login')
+@login_required
 def edit_profile(request):
     if request.method == 'POST':
         form = UserProfileForm(request.POST, request.FILES, instance=request.user)
@@ -94,7 +96,7 @@ def edit_profile(request):
         form = UserProfileForm(instance=request.user)
     return render(request, 'accounts/edit_profile.html', {'form': form})
 
-@login_required(login_url='accounts:login')
+@login_required
 @require_POST
 @csrf_exempt
 def update_location(request):

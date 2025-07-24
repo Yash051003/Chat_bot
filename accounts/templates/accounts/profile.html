@@ -150,7 +150,7 @@
                                                 {% endif %}
                                                 <div class="card-body">
                                                     <h6 class="card-title">{{ other_user.username }}</h6>
-                                                    <a href="{% url 'chat:room' match.id %}" class="btn btn-sm btn-primary">
+                                                    <a href="{% url 'chat:room' other_user.id %}" class="btn btn-sm btn-primary">
                                                         <i class="bi bi-chat-dots"></i> Chat
                                                     </a>
                                                 </div>

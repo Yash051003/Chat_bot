@@ -86,11 +86,16 @@ def matches(request):
     }
     return render(request, 'match/matches.html', context)
 
-@login_required
 def landing_page(request):
+    """
+    Checks if a user is logged in.
+    - If logged in, redirects to the browse page.
+    - If not logged in, shows the public landing page.
+    """
     if request.user.is_authenticated:
-        return redirect('match:browse')
-    return render(request, 'match/landing.html')
+        return redirect('match:browse') # Redirects logged-in users
+    
+    return render(request, 'match/landing.html') # Shows landing page for visitors
 
 @login_required
 def browse(request):
@@ -123,7 +128,7 @@ def browse(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'match/index.html', {
+    return render(request, 'match/explore.html', {
         'potential_matches': page_obj,
         'page_obj': page_obj,
     })

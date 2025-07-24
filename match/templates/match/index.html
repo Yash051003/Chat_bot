@@ -1,217 +1,42 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load match_filters %}
 
-{% block title %}Browse Profiles{% endblock %}
-
-{% block extra_css %}
-<style>
-    .distance-badge {
-        font-size: 0.9rem;
-        padding: 0.5rem 0.75rem;
-        border-radius: 20px;
-        background: rgba(0, 0, 0, 0.7);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
-        color: white;
-        font-weight: 500;
-        letter-spacing: 0.3px;
-    }
-    .location-info {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: #666;
-        margin-bottom: 1rem;
-    }
-    .location-icon {
-        color: var(--primary-color);
-    }
-    .profile-card {
-        transition: transform 0.2s ease-in-out;
-        position: relative;
-        overflow: hidden;
-    }
-    .profile-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-    .profile-image-container {
-        position: relative;
-        height: 300px;
-        overflow: hidden;
-    }
-    .profile-image-container::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 100px;
-        background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
-        pointer-events: none;
-    }
-    .profile-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-</style>
-{% endblock %}
+{% block title %}Welcome to Dating App{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="row mb-4">
-        <div class="col">
-            <h2 class="display-6 mb-2">Browse Profiles</h2>
-            <p class="text-muted">Find interesting people near you</p>
+<div class="container text-center py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="display-4 fw-bold mb-4">Find Your Connection</h1>
+            <p class="lead mb-5">
+                Join our community to meet new people, discover interesting profiles, and start meaningful conversations today.
+            </p>
+            <div>
+                <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-lg me-2">Get Started</a>
+                <a href="{% url 'accounts:login' %}" class="btn btn-outline-secondary btn-lg">Log In</a>
+            </div>
         </div>
     </div>
-
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        {% if potential_matches %}
-            {% for user in potential_matches %}
-                <div class="col">
-                    <div class="card h-100 profile-card">
-                        <div class="profile-image-container">
-                            {% if user.profile_picture %}
-                                <img src="{{ user.profile_picture.url }}" class="profile-image" alt="{{ user.username }}">
-                            {% else %}
-                                <img src="{% static 'images/default-profile.jpg' %}" class="profile-image" alt="Default Profile">
-                            {% endif %}
-                            {% if user.distance %}
-                                <div class="position-absolute top-0 start-0 m-3">
-                                    <span class="distance-badge">
-                                        <i class="bi bi-geo-alt me-1"></i>
-                                        {% if user.distance < 1 %}
-                                            {{ user.distance|floatformat:3|multiply:1000|floatformat:0 }}m away
-                                        {% else %}
-                                            {{ user.distance|floatformat:1 }}km away
-                                        {% endif %}
-                                    </span>
-                                </div>
-                            {% endif %}
-                        </div>
-                        <div class="card-body">
-                            <h5 class="card-title mb-2">{{ user.username }}{% if user.age %}, {{ user.age }}{% endif %}</h5>
-                            {% if user.location %}
-                                <div class="location-info">
-                                    <i class="bi bi-geo-alt-fill location-icon"></i>
-                                    <span>{{ user.location }}</span>
-                                </div>
-                            {% endif %}
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary flex-grow-1" data-bs-toggle="modal" data-bs-target="#profileModal{{ user.id }}">
-                                    <i class="fas fa-user"></i> View Profile
-                                </button>
-                                <a href="{% url 'chat:room' user.id %}" class="btn btn-primary">
-                                    <i class="bi bi-chat-dots"></i> Message
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Profile Modal -->
-                <div class="modal fade" id="profileModal{{ user.id }}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header border-0">
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        {% if user.profile_picture %}
-                                            <img src="{{ user.profile_picture.url }}" class="img-fluid rounded" alt="{{ user.username }}">
-                                        {% else %}
-                                            <img src="{% static 'images/default-profile.jpg' %}" class="img-fluid rounded" alt="Default Profile">
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h3 class="mb-3">{{ user.username }}{% if user.age %}, {{ user.age }}{% endif %}</h3>
-                                        
-                                        <div class="mb-3">
-                                            {% if user.distance %}
-                                                <div class="d-flex align-items-center mb-2">
-                                                    <i class="bi bi-geo-alt-fill text-primary me-2"></i>
-                                                    <span>
-                                                        {% if user.distance < 1 %}
-                                                            {{ user.distance|floatformat:3|multiply:1000|floatformat:0 }} meters away
-                                                        {% else %}
-                                                            {{ user.distance|floatformat:1 }} kilometers away
-                                                        {% endif %}
-                                                    </span>
-                                                </div>
-                                            {% endif %}
-                                            {% if user.location %}
-                                                <div class="d-flex align-items-center">
-                                                    <i class="bi bi-pin-map-fill text-primary me-2"></i>
-                                                    <span>{{ user.location }}</span>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-
-                                        {% if user.bio %}
-                                            <div class="mb-4">
-                                                <h5>About Me</h5>
-                                                <p>{{ user.bio }}</p>
-                                            </div>
-                                        {% endif %}
-
-                                        <div class="d-grid gap-2">
-                                            <a href="{% url 'chat:room' user.id %}" class="btn btn-primary">
-                                                <i class="bi bi-chat-dots"></i> Message
-                                            </a>
-                                            <a href="{% url 'match:toggle_favorite' user.id %}" class="btn btn-outline-danger">
-                                                <i class="bi bi-heart"></i> Add to Favorites
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-        {% else %}
-            <div class="col-12">
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle me-2"></i>
-                    No profiles found nearby. Try expanding your search radius or check back later!
-                </div>
-            </div>
-        {% endif %}
-    </div>
-
-    {% if page_obj.has_other_pages %}
-        <nav aria-label="Profile navigation" class="mt-4">
-            <ul class="pagination justify-content-center">
-                {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                    </li>
-                {% endif %}
-
-                {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ num }}</span>
-                        </li>
-                    {% else %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                        </li>
-                    {% endif %}
-                {% endfor %}
-
-                {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
-    {% endif %}
 </div>
-{% endblock %} 
+
+<div class="container py-5">
+    <div class="row text-center">
+        <div class="col-md-4">
+            <i class="bi bi-search h1 text-primary"></i>
+            <h4 class="mt-3">Smart Matching</h4>
+            <p class="text-muted">Our algorithm helps you find the best potential matches.</p>
+        </div>
+        <div class="col-md-4">
+            <i class="bi bi-chat-dots-fill h1 text-primary"></i>
+            <h4 class="mt-3">Secure Messaging</h4>
+            <p class="text-muted">Chat with your connections safely and securely.</p>
+        </div>
+        <div class="col-md-4">
+            <i class="bi bi-person-check-fill h1 text-primary"></i>
+            <h4 class="mt-3">Verified Profiles</h4>
+            <p class="text-muted">We ensure authentic profiles for a trustworthy experience.</p>
+        </div>
+    </div>
+</div>
+{% block bottom_nav %}{% endblock %}
+{% endblock %}

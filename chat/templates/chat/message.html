@@ -1,0 +1,27 @@
+{% load static %}
+
+<div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}" id="message-{{ message.id }}">
+    <div class="message-content">
+        {% if message.sender != request.user %}
+            <div class="sender-name">{{ message.sender.username }}</div>
+        {% endif %}
+        {% if message.image_url %}
+            <img src="{{ message.image_url }}" alt="Shared image" class="message-image">
+        {% endif %}
+        {% if message.content %}
+            <div class="message-text">{{ message.content }}</div>
+        {% endif %}
+        <div class="message-time">
+            {{ message.timestamp|date:"g:i A" }}
+            {% if message.sender == request.user %}
+                <span class="message-status">
+                    {% if message.is_read %}
+                        <i class="bi bi-check2-all text-primary"></i>
+                    {% else %}
+                        <i class="bi bi-check2"></i>
+                    {% endif %}
+                </span>
+            {% endif %}
+        </div>
+    </div>
+</div> 

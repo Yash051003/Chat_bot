@@ -88,15 +88,15 @@
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'match:browse' %}">
+                            <a class="nav-link" href="{% url 'match:explore' %}">
                                 <i class="bi bi-grid-3x3-gap"></i> Browse
                             </a>
                         </li>
-                        <li class="nav-item">
+                        {% comment %} <li class="nav-item">
                             <a class="nav-link" href="{% url 'match:matches' %}">
                                 <i class="bi bi-chat-heart"></i> Matches
                             </a>
-                        </li>
+                        </li> {% endcomment %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'accounts:profile' %}">
                                 <i class="bi bi-person"></i> Profile
@@ -143,7 +143,10 @@
         {% block content %}{% endblock %}
     </main>
 
-    {% include 'includes/bottom_nav.html' %}
+    {% block bottom_nav %}
+        {% include 'includes/bottom_nav.html' %}
+    {% endblock bottom_nav %}
+
 
     <!-- Location Permission Modal -->
     {% if user.is_authenticated and not user.latitude %}
