@@ -3,27 +3,28 @@
 
 <nav class="bottom-nav fixed-bottom bg-white border-top">
     <div class="d-flex justify-content-around py-2">
-        <a href="{% url 'match:browse' %}" class="nav-link text-center {% if request.resolver_match.url_name == 'browse' %}active{% endif %}">
-            <i class="bi bi-grid-fill fs-5"></i>
-            <span class="d-block small">Home</span>
+        
+        <a href="{% url 'match:explore' %}" class="nav-link text-center {% if request.resolver_match.url_name == 'explore' %}active{% endif %}" aria-label="Explore">
+            <i class="bi bi-compass-fill fs-5"></i>
+            <span class="d-block small">Explore</span>
         </a>
-        <a href="{% url 'chat:inbox' %}" class="nav-link text-center position-relative {% if request.resolver_match.app_name == 'chat' %}active{% endif %}">
+
+        <a href="{% url 'chat:inbox' %}" class="nav-link text-center position-relative {% if request.resolver_match.app_name == 'chat' %}active{% endif %}" aria-label="Messages">
             <i class="bi bi-chat-dots-fill fs-5"></i>
             <span class="d-block small">Messages</span>
             <div id="message-notification" class="notification-count d-none">0</div>
         </a>
-        <a href="{% url 'match:favorites' %}" class="nav-link text-center {% if request.resolver_match.url_name == 'favorites' %}active{% endif %}">
+
+        <a href="{% url 'match:favorites' %}" class="nav-link text-center {% if request.resolver_match.url_name == 'favorites' %}active{% endif %}" aria-label="Favorites">
             <i class="bi bi-heart-fill fs-5"></i>
             <span class="d-block small">Favorites</span>
         </a>
-        <a href="{% url 'match:explore' %}" class="nav-link text-center {% if request.resolver_match.url_name == 'explore' %}active{% endif %}">
-            <i class="bi bi-compass-fill fs-5"></i>
-            <span class="d-block small">Explore</span>
-        </a>
-        <a href="{% url 'accounts:profile' %}" class="nav-link text-center {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+
+        <a href="{% url 'accounts:profile' %}" class="nav-link text-center {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" aria-label="Profile">
             <i class="bi bi-person-fill fs-5"></i>
             <span class="d-block small">Profile</span>
         </a>
+
     </div>
 </nav>
 

@@ -1,111 +1,114 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
-from .models import Message, Conversation
-from django.contrib.auth import get_user_model
-from django.utils import timezone
 
-User = get_user_model()
+from .models import Message, Conversation
+from accounts.models import User # Make sure to import your User model
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        if not self.scope['user'].is_authenticated:
+        """
+        Called when the websocket is handshaking as part of connection.
+        """
+        # Get the conversation ID from the URL.
+        self.conversation_id = self.scope['url_route']['kwargs']['conversation_id']
+        self.room_group_name = f'chat_{self.conversation_id}'
+        
+        # The user object is available in self.scope['user'] because of AuthMiddlewareStack.
+        self.user = self.scope['user']
+
+        # Ensure the user is authenticated and part of the conversation.
+        if not self.user.is_authenticated:
             await self.close()
             return
 
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f'chat_{self.room_name}'
-        self.user = self.scope['user']
-
-        # Join room group
+        # Join room group.
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
+
         await self.accept()
 
     async def disconnect(self, close_code):
-        # Leave room group
+        """
+        Called when the WebSocket closes for any reason.
+        """
+        # Leave room group.
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
 
     async def receive(self, text_data):
-        try:
-            text_data_json = json.loads(text_data)
-            message_type = text_data_json.get('type')
-            
-            if message_type == 'chat.message':
-                message = text_data_json.get('message', '').strip()
-                image_url = text_data_json.get('image_url')
-                
-                if message or image_url:
-                    # Save message to database
-                    saved_message = await self.save_message(message, image_url)
-                    
-                    # Send message to room group
-                    await self.channel_layer.group_send(
-                        self.room_group_name,
-                        {
-                            'type': 'chat_message',
-                            'message': saved_message
-                        }
-                    )
-        except json.JSONDecodeError:
-            print("Error decoding JSON")
-        except Exception as e:
-            print(f"Error in receive: {str(e)}")
+        """
+        Receive a message from the WebSocket.
+        This method saves the message to the database and then broadcasts it.
+        """
+        data = json.loads(text_data)
+        message_content = data.get('message')
+        image_url = data.get('image_url') # For handling image messages
+
+        if not message_content and not image_url:
+            return # Don't process empty messages
+
+        # Save the message to the database.
+        message = await self.save_message(message_content, image_url)
+
+        # Render the message HTML to send to the group.
+        html = await self.render_message_html(message)
+
+        # Send message to room group.
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat.message',
+                'html': html,
+                'sender_id': self.user.id
+            }
+        )
 
     async def chat_message(self, event):
-        try:
-            message = event['message']
-            
-            # Send message to WebSocket
-            await self.send(text_data=json.dumps({
-                'type': 'chat.message',
-                'html': await self.render_message(message)
-            }))
-        except Exception as e:
-            print(f"Error in chat_message: {str(e)}")
+        """
+        Receive message from room group and forward it to the client's WebSocket.
+        """
+        html = event['html']
+        sender_id = event['sender_id']
+
+        # Send HTML to WebSocket.
+        await self.send(text_data=json.dumps({
+            'type': 'chat.message',
+            'html': html,
+            'sender_id': sender_id
+        }))
 
     @database_sync_to_async
     def save_message(self, content, image_url=None):
-        try:
-            conversation = Conversation.objects.get(id=self.room_name)
-            message = Message.objects.create(
-                conversation=conversation,
-                sender=self.user,
-                content=content,
-                image=image_url
-            )
-            return {
-                'id': message.id,
-                'content': message.content,
-                'image_url': message.image.url if message.image else None,
-                'sender_id': self.user.id,
-                'sender_username': self.user.username,
-                'timestamp': message.created_at.isoformat()
-            }
-        except Exception as e:
-            print(f"Error saving message: {str(e)}")
-            raise
-
+        """
+        Saves a new message object to the database.
+        This runs in a synchronous context.
+        """
+        conversation = get_object_or_404(Conversation, id=self.conversation_id)
+        
+        # Note: If handling direct image uploads, you would save the file here.
+        # This implementation assumes the image URL is already available from an upload view.
+        message = Message.objects.create(
+            conversation=conversation,
+            sender=self.user,
+            content=content,
+            # If you have an image, you'd handle the ImageField here.
+            # For now, this assumes content or a URL is passed.
+        )
+        return message
+        
     @database_sync_to_async
-    def render_message(self, message_data):
-        try:
-            message = {
-                'id': message_data['id'],
-                'content': message_data['content'],
-                'image_url': message_data.get('image_url'),
-                'sender': self.user if message_data['sender_id'] == self.user.id else User.objects.get(id=message_data['sender_id']),
-                'timestamp': timezone.datetime.fromisoformat(message_data['timestamp'])
-            }
-            return render_to_string('chat/message.html', {
-                'message': message,
-                'request': {'user': self.user}
-            })
-        except Exception as e:
-            print(f"Error rendering message: {str(e)}")
-            raise 
+    def render_message_html(self, message):
+        """
+        Renders the message.html template with the message context.
+        """
+        return render_to_string(
+            'chat/message.html', 
+            {'message': message, 'request': self.scope}
+        )

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Inbox{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <h2 class="display-6 mb-4">Messages</h2>
+            
+            <div class="list-group">
+                {% for conversation in conversations %}
+                    <a href="{% url 'chat:room' conversation.other_user_id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ conversation.other_user_name }}</h6>
+                            {% if conversation.latest_message_time %}
+                                <small class="text-muted">{{ conversation.latest_message_time|timesince }} ago</small>
+                            {% endif %}
+                        </div>
+                        <p class="mb-1 text-muted small">
+                            {% if conversation.latest_message_content %}
+                                {{ conversation.latest_message_content|truncatechars:50 }}
+                            {% else %}
+                                No messages yet
+                            {% endif %}
+                        </p>
+                        {% if conversation.unread_messages > 0 %}
+                            <span class="badge bg-danger rounded-pill">{{ conversation.unread_messages }}</span>
+                        {% endif %}
+                    </a>
+                {% empty %}
+                    <div class="text-center py-5">
+                        <p class="text-muted">You have no conversations yet.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

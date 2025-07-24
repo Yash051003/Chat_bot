@@ -23,7 +23,7 @@
                                     <span class="badge bg-dark bg-opacity-75 px-2 py-1">
                                         <i class="bi bi-geo-alt-fill"></i>
                                         {% if distance < 1 %}
-                                            {{ distance|floatformat:3|multiply:1000|floatformat:0 }}m away
+                                            {% comment %} {{ distance|floatformat:3|multiply:1000|floatformat:0 }}m away {% endcomment %}
                                         {% else %}
                                             {{ distance|floatformat:1 }}km away
                                         {% endif %}
@@ -63,7 +63,7 @@
                                 {% endif %}
                             </div>
                             
-                            <div class="profile-stats row text-center mb-4">
+                            <div class="profile-stats row text-center mb-4"> 
                                 <div class="col">
                                     <h5>{{ likes_received }}</h5>
                                     <small class="text-muted">Likes Received</small>
@@ -75,7 +75,7 @@
                                 <div class="col">
                                     <h5>{{ matches.count }}</h5>
                                     <small class="text-muted">Matches</small>
-                                </div>
+                                </div>  
                             </div>
                             {% if request.user == profile_user %}
                             <a href="{% url 'accounts:edit_profile' %}" class="btn btn-primary">
@@ -170,7 +170,7 @@
                     {% else %}
                         <p class="text-muted text-center">No matches yet. Start browsing profiles to find your match!</p>
                         <div class="text-center">
-                            <a href="{% url 'match:browse' %}" class="btn btn-primary">
+                            <a href="{% url 'match:explore' %}" class="btn btn-primary">
                                 <i class="bi bi-search"></i> Find Matches
                             </a>
                         </div>

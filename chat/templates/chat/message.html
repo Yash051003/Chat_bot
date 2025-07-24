@@ -1,27 +1,696 @@
 {% load static %}
 
-<div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}" id="message-{{ message.id }}">
+<div class="message {{ message.sender.id|yesno:'sent,received' }}" data-message-id="{{ message.id }}">
+    <!-- Message Header (for received messages) -->
+    {% if message.sender.id != request.user.id %}
+        <div class="message-header">
+            <small class="message-sender">{{ message.sender.username }}</small>
+        </div>
+    {% endif %}
+
     <div class="message-content">
-        {% if message.sender != request.user %}
-            <div class="sender-name">{{ message.sender.username }}</div>
+        <!-- Text Message -->
+        {% if message.message_type == 'text' or message.message_type == 'emoji' %}
+            <div class="text-content">
+                {{ message.content|linebreaksbr }}
+            </div>
         {% endif %}
-        {% if message.image_url %}
-            <img src="{{ message.image_url }}" alt="Shared image" class="message-image">
+
+        <!-- Image Message -->
+        {% if message.message_type == 'image' %}
+            <div class="media-message image-message">
+                <img src="{{ message.file.url }}" alt="Image" loading="lazy" onclick="openImageModal('{{ message.file.url }}')">
+                {% if message.content %}
+                    <div class="media-caption">{{ message.content|linebreaksbr }}</div>
+                {% endif %}
+            </div>
         {% endif %}
-        {% if message.content %}
-            <div class="message-text">{{ message.content }}</div>
+
+        <!-- Video Message -->
+        {% if message.message_type == 'video' %}
+            <div class="media-message video-message">
+                <video controls preload="metadata">
+                    <source src="{{ message.file.url }}" type="{{ message.file_mime_type }}">
+                    Your browser does not support the video tag.
+                </video>
+                {% if message.content %}
+                    <div class="media-caption">{{ message.content|linebreaksbr }}</div>
+                {% endif %}
+            </div>
         {% endif %}
+
+        <!-- Audio Message -->
+        {% if message.message_type == 'audio' %}
+            <div class="media-message audio-message">
+                <div class="audio-player">
+                    <audio controls preload="metadata">
+                        <source src="{{ message.file.url }}" type="{{ message.file_mime_type }}">
+                        Your browser does not support the audio tag.
+                    </audio>
+                    <div class="audio-info">
+                        <i class="bi bi-music-note"></i>
+                        <span class="audio-name">{{ message.original_filename|default:"Audio" }}</span>
+                    </div>
+                </div>
+                {% if message.content %}
+                    <div class="media-caption">{{ message.content|linebreaksbr }}</div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- File/Document Message -->
+        {% if message.message_type == 'file' or message.message_type == 'document' %}
+            <div class="file-message">
+                <a href="{{ message.file.url }}" download="{{ message.original_filename }}" class="file-download">
+                    <div class="file-icon">
+                        {% if message.file_extension == 'pdf' %}
+                            <i class="bi bi-file-earmark-pdf text-danger"></i>
+                        {% elif message.file_extension in 'doc,docx' %}
+                            <i class="bi bi-file-earmark-word text-primary"></i>
+                        {% elif message.file_extension in 'xls,xlsx' %}
+                            <i class="bi bi-file-earmark-excel text-success"></i>
+                        {% elif message.file_extension in 'ppt,pptx' %}
+                            <i class="bi bi-file-earmark-ppt text-warning"></i>
+                        {% elif message.file_extension in 'zip,rar,7z' %}
+                            <i class="bi bi-file-earmark-zip"></i>
+                        {% else %}
+                            <i class="bi bi-file-earmark"></i>
+                        {% endif %}
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name">{{ message.original_filename }}</div>
+                        <div class="file-size">{{ message.file_size|filesizeformat }}</div>
+                    </div>
+                    <div class="download-icon">
+                        <i class="bi bi-download"></i>
+                    </div>
+                </a>
+                {% if message.content %}
+                    <div class="file-caption">{{ message.content|linebreaksbr }}</div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Voice Note Message -->
+        {% if message.message_type == 'voice_note' %}
+            <div class="voice-note-message">
+                <div class="voice-note-player">
+                    <button class="voice-play-btn" onclick="toggleVoiceNote({{ message.id }})">
+                        <i class="bi bi-play-fill"></i>
+                    </button>
+                    <div class="voice-waveform">
+                        <div class="voice-progress" id="voice-progress-{{ message.id }}"></div>
+                        <canvas id="waveform-{{ message.id }}" width="200" height="40"></canvas>
+                    </div>
+                    <span class="voice-duration">{{ message.duration|default:"0:00" }}</span>
+                    <audio id="voice-audio-{{ message.id }}" preload="metadata">
+                        <source src="{{ message.file.url }}" type="audio/webm">
+                        <source src="{{ message.file.url }}" type="audio/mp4">
+                    </audio>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Location Message -->
+        {% if message.message_type == 'location' %}
+            <div class="location-message">
+                <div class="location-preview">
+                    <div class="location-map" onclick="openLocationModal({{ message.latitude }}, {{ message.longitude }})">
+                        <img src="https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+ff0000({{ message.longitude }},{{ message.latitude }})/{{ message.longitude }},{{ message.latitude }},15,0/300x200@2x?access_token=YOUR_MAPBOX_TOKEN" alt="Location">
+                        <div class="location-overlay">
+                            <i class="bi bi-geo-alt-fill"></i>
+                        </div>
+                    </div>
+                    <div class="location-info">
+                        <div class="location-name">{{ message.location_name|default:"Shared Location" }}</div>
+                        <div class="location-address">{{ message.location_address|default:"Tap to view on map" }}</div>
+                    </div>
+                </div>
+                {% if message.content %}
+                    <div class="location-caption">{{ message.content|linebreaksbr }}</div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Contact Message -->
+        {% if message.message_type == 'contact' %}
+            <div class="contact-message">
+                <div class="contact-card">
+                    <div class="contact-avatar">
+                        {% if message.contact_avatar %}
+                            <img src="{{ message.contact_avatar.url }}" alt="{{ message.contact_name }}">
+                        {% else %}
+                            <div class="contact-initials">{{ message.contact_name|slice:":2"|upper }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="contact-info">
+                        <div class="contact-name">{{ message.contact_name }}</div>
+                        <div class="contact-phone">{{ message.contact_phone }}</div>
+                        {% if message.contact_email %}
+                            <div class="contact-email">{{ message.contact_email }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="contact-actions">
+                        <button class="btn btn-sm btn-outline-primary" onclick="addContact('{{ message.contact_name }}', '{{ message.contact_phone }}')">
+                            <i class="bi bi-person-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- System Message -->
+        {% if message.message_type == 'system' %}
+            <div class="system-message">
+                <div class="system-content">
+                    <i class="bi bi-info-circle"></i>
+                    {{ message.content }}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Call Message -->
+        {% if message.message_type == 'call' %}
+            <div class="call-message">
+                <div class="call-info">
+                    {% if message.call_type == 'video' %}
+                        <i class="bi bi-camera-video"></i>
+                    {% else %}
+                        <i class="bi bi-telephone"></i>
+                    {% endif %}
+                    <span class="call-text">
+                        {% if message.call_status == 'missed' %}
+                            Missed {{ message.call_type }} call
+                        {% elif message.call_status == 'declined' %}
+                            {{ message.call_type|title }} call declined
+                        {% elif message.call_status == 'ended' %}
+                            {{ message.call_type|title }} call • {{ message.call_duration|default:"0:00" }}
+                        {% else %}
+                            {{ message.call_type|title }} call
+                        {% endif %}
+                    </span>
+                </div>
+                <button class="call-back-btn" onclick="initiateCall('{{ message.call_type }}')">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+        {% endif %}
+
+        <!-- Sticker Message -->
+        {% if message.message_type == 'sticker' %}
+            <div class="sticker-message">
+                <img src="{{ message.sticker.url }}" alt="Sticker" class="sticker-image">
+            </div>
+        {% endif %}
+
+        <!-- GIF Message -->
+        {% if message.message_type == 'gif' %}
+            <div class="gif-message">
+                <img src="{{ message.gif_url }}" alt="GIF" class="gif-image" loading="lazy">
+                {% if message.content %}
+                    <div class="gif-caption">{{ message.content|linebreaksbr }}</div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Reply Message (if replying to another message) -->
+        {% if message.reply_to %}
+            <div class="reply-preview">
+                <div class="reply-line"></div>
+                <div class="reply-content">
+                    <div class="reply-sender">{{ message.reply_to.sender.username }}</div>
+                    <div class="reply-text">
+                        {% if message.reply_to.message_type == 'text' %}
+                            {{ message.reply_to.content|truncatechars:50 }}
+                        {% elif message.reply_to.message_type == 'image' %}
+                            <i class="bi bi-image"></i> Photo
+                        {% elif message.reply_to.message_type == 'video' %}
+                            <i class="bi bi-camera-video"></i> Video
+                        {% elif message.reply_to.message_type == 'audio' %}
+                            <i class="bi bi-music-note"></i> Audio
+                        {% elif message.reply_to.message_type == 'file' %}
+                            <i class="bi bi-file-earmark"></i> {{ message.reply_to.original_filename }}
+                        {% elif message.reply_to.message_type == 'voice_note' %}
+                            <i class="bi bi-mic"></i> Voice message
+                        {% elif message.reply_to.message_type == 'location' %}
+                            <i class="bi bi-geo-alt"></i> Location
+                        {% elif message.reply_to.message_type == 'contact' %}
+                            <i class="bi bi-person"></i> Contact
+                        {% else %}
+                            {{ message.reply_to.content|truncatechars:50 }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Message Reactions -->
+        {% if message.reactions.exists %}
+            <div class="message-reactions">
+                {% for reaction in message.reactions.all %}
+                    <span class="reaction {{ reaction.user.id|yesno:'own-reaction,' }}" 
+                          onclick="toggleReaction({{ message.id }}, '{{ reaction.emoji }}')">
+                        {{ reaction.emoji }}
+                        {% if reaction.count > 1 %}<span class="reaction-count">{{ reaction.count }}</span>{% endif %}
+                    </span>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Message Footer -->
+    <div class="message-footer">
         <div class="message-time">
-            {{ message.timestamp|date:"g:i A" }}
-            {% if message.sender == request.user %}
+            {{ message.timestamp|date:"H:i" }}
+            {% if message.sender.id == request.user.id %}
                 <span class="message-status">
                     {% if message.is_read %}
                         <i class="bi bi-check2-all text-primary"></i>
+                    {% elif message.is_delivered %}
+                        <i class="bi bi-check2-all"></i>
                     {% else %}
                         <i class="bi bi-check2"></i>
                     {% endif %}
                 </span>
             {% endif %}
         </div>
+
+        <!-- Message Actions (on hover/long press) -->
+        <div class="message-actions" style="display: none;">
+            <button class="action-btn" onclick="replyToMessage({{ message.id }})" title="Reply">
+                <i class="bi bi-reply"></i>
+            </button>
+            <button class="action-btn" onclick="showReactionPicker({{ message.id }})" title="React">
+                <i class="bi bi-emoji-smile"></i>
+            </button>
+            {% if message.message_type in 'text,image,video,audio,file' %}
+                <button class="action-btn" onclick="forwardMessage({{ message.id }})" title="Forward">
+                    <i class="bi bi-share"></i>
+                </button>
+            {% endif %}
+            {% if message.message_type == 'text' %}
+                <button class="action-btn" onclick="copyMessage({{ message.id }})" title="Copy">
+                    <i class="bi bi-copy"></i>
+                </button>
+            {% endif %}
+            {% if message.sender.id == request.user.id %}
+                <button class="action-btn text-danger" onclick="deleteMessage({{ message.id }})" title="Delete">
+                    <i class="bi bi-trash"></i>
+                </button>
+            {% endif %}
+        </div>
     </div>
-</div> 
+</div>
+
+<!-- Additional CSS for message styles -->
+<style>
+    .message-header {
+        margin-bottom: 0.25rem;
+    }
+
+    .message-sender {
+        color: var(--primary-color, #390281);
+        font-weight: 500;
+    }
+
+    .text-content {
+        word-wrap: break-word;
+        word-break: break-word;
+    }
+
+    .media-message {
+        max-width: 300px;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .media-message img,
+    .media-message video {
+        width: 100%;
+        height: auto;
+        display: block;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .media-message img:hover {
+        transform: scale(1.02);
+    }
+
+    .media-caption,
+    .file-caption,
+    .location-caption,
+    .gif-caption {
+        padding: 0.5rem;
+        background: rgba(0,0,0,0.05);
+        font-size: 0.9rem;
+    }
+
+    .audio-player {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        background: rgba(255,255,255,0.1);
+        border-radius: 0.5rem;
+    }
+
+    .audio-info {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        flex-grow: 1;
+    }
+
+    .file-download {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(255,255,255,0.1);
+        border-radius: 0.5rem;
+        text-decoration: none;
+        color: inherit;
+        transition: background 0.2s;
+    }
+
+    .file-download:hover {
+        background: rgba(255,255,255,0.2);
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .file-icon {
+        font-size: 1.5rem;
+    }
+
+    .file-info {
+        flex-grow: 1;
+    }
+
+    .file-name {
+        font-weight: 500;
+        margin-bottom: 0.125rem;
+    }
+
+    .file-size {
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    .voice-note-message {
+        background: rgba(255,255,255,0.1);
+        border-radius: 2rem;
+        padding: 0.5rem;
+    }
+
+    .voice-note-player {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .voice-play-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .voice-waveform {
+        position: relative;
+        flex-grow: 1;
+    }
+
+    .voice-duration {
+        font-size: 0.8rem;
+        min-width: 35px;
+    }
+
+    .location-message {
+        border-radius: 0.5rem;
+        overflow: hidden;
+        max-width: 300px;
+    }
+
+    .location-preview {
+        cursor: pointer;
+    }
+
+    .location-map {
+        position: relative;
+    }
+
+    .location-map img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    .location-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #ff0000;
+        font-size: 1.5rem;
+        text-shadow: 0 0 4px rgba(255,255,255,0.8);
+    }
+
+    .location-info {
+        padding: 0.75rem;
+        background: rgba(255,255,255,0.1);
+    }
+
+    .location-name {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .location-address {
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    .contact-card {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(255,255,255,0.1);
+        border-radius: 0.5rem;
+    }
+
+    .contact-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: var(--primary-color, #390281);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .contact-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .contact-initials {
+        color: white;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .contact-info {
+        flex-grow: 1;
+    }
+
+    .contact-name {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .contact-phone,
+    .contact-email {
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    .system-message {
+        text-align: center;
+        margin: 1rem 0;
+    }
+
+    .system-content {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(0,0,0,0.1);
+        border-radius: 1rem;
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    .call-message {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem;
+        background: rgba(255,255,255,0.1);
+        border-radius: 0.5rem;
+    }
+
+    .call-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .call-back-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .sticker-image {
+        width: 150px;
+        height: auto;
+    }
+
+    .gif-image {
+        max-width: 250px;
+        height: auto;
+        border-radius: 0.5rem;
+    }
+
+    .reply-preview {
+        display: flex;
+        margin-bottom: 0.5rem;
+        padding: 0.5rem;
+        background: rgba(0,0,0,0.1);
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+
+    .reply-line {
+        width: 3px;
+        background: var(--primary-color, #390281);
+        border-radius: 1.5px;
+        margin-right: 0.5rem;
+    }
+
+    .reply-sender {
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--primary-color, #390281);
+        margin-bottom: 0.125rem;
+    }
+
+    .reply-text {
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    .message-reactions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        margin-top: 0.5rem;
+    }
+
+    .reaction {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.125rem;
+        padding: 0.125rem 0.375rem;
+        background: rgba(255,255,255,0.1);
+        border-radius: 1rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .reaction:hover {
+        background: rgba(255,255,255,0.2);
+    }
+
+    .own-reaction {
+        background: var(--primary-color, #390281);
+        color: white;
+    }
+
+    .reaction-count {
+        font-size: 0.7rem;
+        opacity: 0.8;
+    }
+
+    .message-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 0.25rem;
+    }
+
+    .message-status {
+        margin-left: 0.25rem;
+    }
+
+    .message-actions {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .action-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: background 0.2s;
+    }
+
+    .action-btn:hover {
+        background: rgba(0,0,0,0.2);
+    }
+
+    /* Show actions on hover for desktop */
+    @media (min-width: 768px) {
+        .message:hover .message-actions {
+            display: flex !important;
+        }
+    }
+
+    /* Mobile styles */
+    @media (max-width: 767px) {
+        .media-message {
+            max-width: 250px;
+        }
+        
+        .location-message {
+            max-width: 250px;
+        }
+        
+        .gif-image {
+            max-width: 200px;
+        }
+    }
+</style>

@@ -25,7 +25,7 @@ def login_view(request):
             if user is not None:
                 login(request, user)
                 messages.success(request, f'Welcome back, {username}!')
-                next_url = request.GET.get('next', 'match:browse')
+                next_url = request.GET.get('next', 'match:explore')
                 return redirect(next_url)
     else:
         form = UserLoginForm()

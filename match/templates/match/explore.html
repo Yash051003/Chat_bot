@@ -3,6 +3,28 @@
 
 {% block title %}Explore - Dating App{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Main profile card styles */
+    .profile-card {
+        transition: transform 0.2s ease-in-out;
+    }
+    .profile-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .profile-image {
+        height: 300px;
+        object-fit: cover;
+    }
+    .modal-profile-image {
+        width: 100%;
+        height: 400px;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
     <div class="row mb-4">
@@ -12,89 +34,80 @@
         </div>
     </div>
 
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        {% if explore_users %}
-            {% for user in explore_users %}
-                <div class="col">
-                    <div class="card h-100 profile-card" style="cursor: pointer;">
-                        <div class="position-relative">
-                            {% if user.profile_picture %}
-                                <img src="{{ user.profile_picture.url }}" class="card-img-top profile-image" alt="{{ user.username }}" style="height: 300px; object-fit: cover;">
-                            {% else %}
-                                <img src="{% static 'images/default-profile.jpg' %}" class="card-img-top profile-image" alt="Default Profile" style="height: 300px; object-fit: cover;">
-                            {% endif %}
-                            <button class="btn btn-light btn-sm position-absolute top-0 end-0 m-2 add-favorite" data-user-id="{{ user.id }}">
-                                <i class="bi bi-heart"></i>
+    {% csrf_token %} <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for user in explore_users %}
+            <div class="col">
+                <div class="card h-100 profile-card">
+                    <div class="position-relative">
+                        {% if user.profile_picture %}
+                            <img src="{{ user.profile_picture.url }}" class="card-img-top profile-image" alt="{{ user.username }}">
+                        {% else %}
+                            <img src="{% static 'images/default-profile.jpg' %}" class="card-img-top profile-image" alt="Default Profile">
+                        {% endif %}
+                        <button class="btn btn-light btn-sm position-absolute top-0 end-0 m-2 add-favorite" data-user-id="{{ user.id }}">
+                            <i class="bi bi-heart"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title mb-2">{{ user.username }}{% if user.age %}, {{ user.age }}{% endif %}</h5>
+                        {% if user.location %}
+                            <p class="card-text text-muted mb-1"><i class="fas fa-map-marker-alt"></i> {{ user.location }}</p>
+                        {% endif %}
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-outline-primary flex-grow-1" data-bs-toggle="modal" data-bs-target="#profileModal{{ user.id }}">
+                                <i class="fas fa-user"></i> View Profile
                             </button>
-                        </div>
-                        <div class="card-body">
-                            <h5 class="card-title mb-2">{{ user.username }}{% if user.age %}, {{ user.age }}{% endif %}</h5>
-                            {% if user.location %}
-                                <p class="card-text text-muted mb-1"><i class="fas fa-map-marker-alt"></i> {{ user.location }}</p>
-                            {% endif %}
-                            <div class="d-flex gap-2 mt-3">
-                                <button class="btn btn-outline-primary flex-grow-1" data-bs-toggle="modal" data-bs-target="#profileModal{{ user.id }}">
-                                    <i class="fas fa-user"></i> View Profile
-                                </button>
-                                <a href="{% url 'chat:room' user.id %}" class="btn btn-primary">
-                                    <i class="bi bi-chat-dots"></i> Message
-                                </a>
-                            </div>
+                            <a href="{% url 'chat:room' user.id %}" class="btn btn-primary">
+                                <i class="bi bi-chat-dots"></i> Message
+                            </a>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Profile Modal -->
-                <div class="modal fade" id="profileModal{{ user.id }}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header border-0">
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        {% if user.profile_picture %}
-                                            <img src="{{ user.profile_picture.url }}" class="img-fluid rounded" alt="{{ user.username }}" style="width: 100%; height: 400px; object-fit: cover;">
-                                        {% else %}
-                                            <img src="{% static 'images/default-profile.jpg' %}" class="img-fluid rounded" alt="Default Profile" style="width: 100%; height: 400px; object-fit: cover;">
-                                        {% endif %}
+            <div class="modal fade" id="profileModal{{ user.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header border-0">
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {% if user.profile_picture %}
+                                        <img src="{{ user.profile_picture.url }}" class="img-fluid rounded modal-profile-image" alt="{{ user.username }}">
+                                    {% else %}
+                                        <img src="{% static 'images/default-profile.jpg' %}" class="img-fluid rounded modal-profile-image" alt="Default Profile">
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <h3 class="mb-3">{{ user.username }}{% if user.age %}, {{ user.age }}{% endif %}</h3>
+                                    
+                                    {% if user.location %}
+                                    <p class="mb-2"><i class="fas fa-map-marker-alt text-primary"></i><span class="ms-2">{{ user.location }}</span></p>
+                                    {% endif %}
+                                    
+                                    {% if user.gender %}
+                                    <p class="mb-2"><i class="fas fa-venus-mars text-primary"></i><span class="ms-2">{{ user.get_gender_display }}</span></p>
+                                    {% endif %}
+                                    
+                                    {% if user.bio %}
+                                    <div class="mb-4">
+                                        <h5>About Me</h5>
+                                        <p>{{ user.bio }}</p>
                                     </div>
-                                    <div class="col-md-6">
-                                        <h3 class="mb-3">{{ user.username }}{% if user.age %}, {{ user.age }}{% endif %}</h3>
-                                        
-                                        {% if user.location %}
-                                            <p class="mb-2">
-                                                <i class="fas fa-map-marker-alt text-primary"></i>
-                                                <span class="ms-2">{{ user.location }}</span>
-                                            </p>
-                                        {% endif %}
-                                        
-                                        {% if user.gender %}
-                                            <p class="mb-2">
-                                                <i class="fas fa-venus-mars text-primary"></i>
-                                                <span class="ms-2">{{ user.get_gender_display }}</span>
-                                            </p>
-                                        {% endif %}
-                                        
-                                        {% if user.bio %}
-                                            <div class="mb-4">
-                                                <h5>About Me</h5>
-                                                <p>{{ user.bio }}</p>
-                                            </div>
-                                        {% endif %}
-                                        
-                                        <a href="{% url 'chat:room' user.id %}" class="btn btn-primary btn-lg w-100">
-                                            <i class="bi bi-chat-dots"></i> Message
-                                        </a>
-                                    </div>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'chat:room' user.id %}" class="btn btn-primary btn-lg w-100">
+                                        <i class="bi bi-chat-dots"></i> Message
+                                    </a>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            {% endfor %}
-        {% else %}
+            </div>
+        {% empty %}
             <div class="col-12">
                 <div class="text-center py-5">
                     <i class="bi bi-compass text-muted display-1 mb-3"></i>
@@ -102,43 +115,49 @@
                     <p class="text-muted">Check back later for new suggestions!</p>
                 </div>
             </div>
-        {% endif %}
+        {% endfor %}
     </div>
 </div>
-
-{% block extra_css %}
-<style>
-    .profile-card {
-        transition: transform 0.2s ease-in-out;
-    }
-    .profile-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize all modals
-    var modals = document.querySelectorAll('.modal');
-    modals.forEach(function(modal) {
-        new bootstrap.Modal(modal);
-    });
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    // Handle add favorite
+    // Handle add favorite button clicks
     document.querySelectorAll('.add-favorite').forEach(button => {
         button.addEventListener('click', function(e) {
-            e.stopPropagation();
+            e.stopPropagation(); // Prevent modal from opening if card is clickable
             const userId = this.dataset.userId;
-            // Add your add favorite logic here
-            this.innerHTML = '<i class="bi bi-heart-fill"></i>';
-            this.classList.remove('btn-light');
-            this.classList.add('btn-danger');
+            const icon = this.querySelector('i');
+            const url = `/match/toggle_favorite/${userId}/`; // Use your actual URL
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    if (data.favorited) {
+                        icon.classList.remove('bi-heart');
+                        icon.classList.add('bi-heart-fill');
+                        button.classList.remove('btn-light');
+                        button.classList.add('btn-danger');
+                    } else {
+                        icon.classList.remove('bi-heart-fill');
+                        icon.classList.add('bi-heart');
+                        button.classList.remove('btn-danger');
+                        button.classList.add('btn-light');
+                    }
+                }
+            });
         });
     });
 });
 </script>
 {% endblock %}
-{% endblock %} 

@@ -67,13 +67,13 @@ def like_user(request, user_id):
         match.users.add(request.user, liked_user)
         messages.success(request, f'It\'s a match with {liked_user.username}!')
     
-    return redirect('match:browse')
+    return redirect('match:explore')
 
 @login_required
 def pass_user(request, user_id):
     # For now, just redirect back to browse
     # In the future, you might want to store this information to avoid showing the same user again
-    return redirect('match:browse')
+    return redirect('match:explore')
 
 @login_required
 def matches(request):
@@ -93,7 +93,7 @@ def landing_page(request):
     - If not logged in, shows the public landing page.
     """
     if request.user.is_authenticated:
-        return redirect('match:browse') # Redirects logged-in users
+        return redirect('match:explore') # Redirects logged-in users
     
     return render(request, 'match/landing.html') # Shows landing page for visitors
 
@@ -141,29 +141,38 @@ def favorites(request):
         'favorite_users': favorite_users
     })
 
+# match/views.py
+
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from accounts.models import User
+from .models import Favorite # Make sure to import your Favorite model
+
 @login_required
 def toggle_favorite(request, user_id):
-    user_to_favorite = get_object_or_404(User, id=user_id)
+    if request.method == 'POST':
+        try:
+            user_to_favorite = User.objects.get(id=user_id)
+            
+            # This is the corrected logic for your model
+            favorite, created = Favorite.objects.get_or_create(
+                user=request.user,
+                favorited_user=user_to_favorite
+            )
+
+            # If the object was not created, it means it already existed, so we delete it.
+            if not created:
+                favorite.delete()
+                is_favorited = False
+            else:
+                is_favorited = True
+
+            return JsonResponse({'status': 'ok', 'favorited': is_favorited})
+
+        except User.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'User not found'}, status=404)
     
-    # Don't allow users to favorite themselves
-    if user_to_favorite == request.user:
-        messages.error(request, "You cannot favorite yourself.")
-        return redirect('match:browse')
-    
-    favorite, created = Favorite.objects.get_or_create(
-        user=request.user,
-        favorited_user=user_to_favorite
-    )
-    
-    if not created:
-        # If it already existed, remove it (unfavorite)
-        favorite.delete()
-        messages.success(request, f'Removed {user_to_favorite.username} from favorites')
-    else:
-        messages.success(request, f'Added {user_to_favorite.username} to favorites')
-    
-    # Redirect back to the previous page
-    return redirect(request.META.get('HTTP_REFERER', 'match:browse'))
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
 @login_required
 def explore(request):

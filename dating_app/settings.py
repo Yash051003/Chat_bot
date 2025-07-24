@@ -32,6 +32,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -158,4 +159,20 @@ CHANNEL_LAYERS = {
             "hosts": [('127.0.0.1', 6379)],
         },
     },
+}
+
+# for memurai/redis cache
+CACHES = {
+    "default": {
+        # This was the incorrect line
+        # "BACKEND": "dating_app.cache.RedisCache", 
+        
+        # ✅ This is the correct path
+        "BACKEND": "django_redis.cache.RedisCache", 
+        
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
 }
